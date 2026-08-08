@@ -1,0 +1,12 @@
+{
+  "name": "resort-management-system",
+  "version": "1.0.0",
+  "description": "Full Beach Resort Public Website & Admin Management Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve ."
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  }
+}
