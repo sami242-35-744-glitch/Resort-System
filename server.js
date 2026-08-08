@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-// Static HTML, CSS, JS ফাইলগুলো 'public' ফোল্ডারে রাখলে সার্ভ করার জন্য:
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==========================================

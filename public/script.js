@@ -4,13 +4,15 @@
 
 const API_BASE = '/api'; // Express backend base URL
 
-let currentRole = 'admin';
-let currentUser = {
+let currentRole = null;
+let currentUser = null;
+
+const DEFAULT_ADMIN = {
     role: 'ADMINISTRATOR',
     name: 'MD. EMTIAZ HOSSAIN SAMI',
     email: 'admin@grandpalace.com',
     phone: '+8801700000000',
-    avatar: 'Md. EmTIAZ hOSSAIN sAMI LOGO(3).png'
+    avatar: 'Md. EmTIAZ hOSSAIN sAMI LOGO.png'
 };
 
 // Global State (Fetched from Node.js Server)
@@ -53,16 +55,22 @@ document.addEventListener('DOMContentLoaded', async function () {
     const savedRole = localStorage.getItem('currentRole');
     const savedUser = localStorage.getItem('currentUser');
 
+    const loginModal = document.getElementById('loginModal');
+
+    // আগে যদি লগইন করা থাকে তবে সেশন লোড হবে, না থাকলে আগে লগইন পপআপ দেখাবে
     if (savedRole && savedUser) {
         try {
             currentRole = savedRole;
             currentUser = JSON.parse(savedUser);
-            
-            const loginModal = document.getElementById('loginModal');
             if (loginModal) loginModal.classList.remove('active');
+            switchUserRole(currentRole);
         } catch (e) {
             console.error('Failed to parse saved session user', e);
+            if (loginModal) loginModal.classList.add('active');
         }
+    } else {
+        // প্রথমবার ঢুকলে সরাসরি লগইন স্ক্রিন/মোডাল চলে আসবে
+        if (loginModal) loginModal.classList.add('active');
     }
 
     initClock();
@@ -76,8 +84,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         resForm.addEventListener('change', calculateTotal);
         resForm.addEventListener('input', calculateTotal);
     }
-
-    switchUserRole(currentRole);
 });
 
 async function fetchAllData() {
@@ -319,34 +325,17 @@ function switchAuthForm(type) {
 
 async function handleStaffLogin(event) {
     if (event) event.preventDefault();
-    const email = document.getElementById('loginEmail')?.value.trim() || '';
-    const password = document.getElementById('loginPasswordInput')?.value || '';
 
-    try {
-        const res = await fetch(`${API_BASE}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
+    // স্টাফ লগইন করলে সরাসরি আপনার DEFAULT_ADMIN প্রোফাইল সেট হবে
+    currentRole = 'admin';
+    currentUser = DEFAULT_ADMIN;
 
-        const data = await res.json();
+    localStorage.setItem('currentRole', currentRole);
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-        if (res.ok && data.success) {
-            currentRole = data.role;
-            currentUser = data.user;
-
-            localStorage.setItem('currentRole', currentRole);
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-            document.getElementById('loginModal')?.classList.remove('active');
-            switchUserRole('admin');
-            alert('Welcome Back, Admin!');
-        } else {
-            alert('❌ ' + (data.message || 'Invalid Credentials!'));
-        }
-    } catch (err) {
-        alert('Server Error during login.');
-    }
+    document.getElementById('loginModal')?.classList.remove('active');
+    switchUserRole('admin');
+    alert('Welcome Back, ' + currentUser.name + '!');
 }
 
 function handleGuestLoginSubmit(event) {
@@ -379,7 +368,9 @@ function switchUserRole(role) {
     currentRole = role;
 
     localStorage.setItem('currentRole', currentRole);
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    if (currentUser) {
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    }
 
     const selector = document.getElementById('roleSelector');
     if (selector) selector.value = role;
@@ -392,16 +383,18 @@ function switchUserRole(role) {
     const topbarAvatar = document.getElementById('topbarAvatar');
 
     if (role === 'admin') {
-        if (nameEl) nameEl.textContent = 'MD. EMTIAZ HOSSAIN SAMI';
-        if (roleEl) roleEl.textContent = 'Role: ADMINISTRATOR';
-        if (avatarEl) avatarEl.src = 'Md. EmTIAZ hOSSAIN sAMI LOGO.png';
-        if (topbarAvatar) topbarAvatar.src = 'Md. EmTIAZ hOSSAIN sAMI LOGO.png';
+        const adminData = currentUser || DEFAULT_ADMIN;
+        if (nameEl) nameEl.textContent = adminData.name;
+        if (roleEl) roleEl.textContent = 'Role: ' + adminData.role;
+        if (avatarEl) avatarEl.src = adminData.avatar;
+        if (topbarAvatar) topbarAvatar.src = adminData.avatar;
         switchTab('tabAdminRooms');
     } else {
-        if (nameEl) nameEl.textContent = currentUser.name || 'Valued Guest';
+        const guestData = currentUser || { name: 'Valued Guest', avatar: 'https://ui-avatars.com/api/?name=Guest&background=c5a880&color=fff' };
+        if (nameEl) nameEl.textContent = guestData.name;
         if (roleEl) roleEl.textContent = 'Role: GUEST';
-        if (avatarEl) avatarEl.src = currentUser.avatar;
-        if (topbarAvatar) topbarAvatar.src = currentUser.avatar;
+        if (avatarEl) avatarEl.src = guestData.avatar;
+        if (topbarAvatar) topbarAvatar.src = guestData.avatar;
         switchTab('tabRooms');
     }
 }
@@ -410,14 +403,8 @@ function logoutUser() {
     localStorage.removeItem('currentRole');
     localStorage.removeItem('currentUser');
 
-    currentRole = 'guest';
-    currentUser = {
-        role: 'GUEST',
-        name: 'Valued Guest',
-        email: '',
-        phone: '',
-        avatar: 'https://ui-avatars.com/api/?name=Guest&background=c5a880&color=fff'
-    };
+    currentRole = null;
+    currentUser = null;
 
     document.getElementById('loginModal')?.classList.add('active');
     switchAuthForm('guest');
