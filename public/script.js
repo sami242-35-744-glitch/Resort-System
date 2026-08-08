@@ -10,7 +10,7 @@ let currentUser = {
     name: 'MD. EMTIAZ HOSSAIN SAMI',
     email: 'admin@grandpalace.com',
     phone: '+8801700000000',
-    avatar: 'Md. EmTIAZ hOSSAIN sAMI LOGO.png'
+    avatar: 'Md. EmTIAZ hOSSAIN sAMI LOGO(3).png'
 };
 
 // Global State (Fetched from Node.js Server)
