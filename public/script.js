@@ -1,5 +1,3 @@
-
-
 const API_BASE = '/api'; // Express backend base URL
 
 let currentRole = null;
@@ -12,7 +10,6 @@ const DEFAULT_ADMIN = {
     phone: '+8801700000000',
     avatar: 'Md. EmTIAZ hOSSAIN sAMI LOGO.png'
 };
-
 
 let roomList = [];
 let bookings = [];
@@ -43,32 +40,21 @@ function autoFillGuestInfo() {
     }
 }
 
-
+// --- DOM Content Loaded (Updated to force Login Modal on load) ---
 document.addEventListener('DOMContentLoaded', async function () {
-    const savedRole = localStorage.getItem('currentRole');
-    const savedUser = localStorage.getItem('currentUser');
-
     const loginModal = document.getElementById('loginModal');
 
-
-    if (savedRole && savedUser) {
-        try {
-            currentRole = savedRole;
-            currentUser = JSON.parse(savedUser);
-            if (loginModal) loginModal.classList.remove('active');
-            switchUserRole(currentRole);
-        } catch (e) {
-            console.error('Failed to parse saved session user', e);
-            if (loginModal) loginModal.classList.add('active');
-        }
-    } else {
-       
-        if (loginModal) loginModal.classList.add('active');
+    // ১. সাইটে ঢোকার সাথে সাথেই লগইন মোডাল ওপেন হবে
+    if (loginModal) {
+        loginModal.classList.add('active');
     }
+
+    // ২. আগের সেভ থাকা সেশন ডিলিট করে দেওয়া (যাতে অটো-লগইন না হয়)
+    localStorage.removeItem('currentRole');
+    localStorage.removeItem('currentUser');
 
     initClock();
     setupDefaultDates();
-    
     
     await fetchAllData();
 
@@ -138,7 +124,6 @@ function renderAll() {
     renderFinance();
     renderGuests();
 }
-
 
 function renderGuestRooms() {
     const container = document.getElementById('guestRoomsCardsGrid');
@@ -228,7 +213,6 @@ function renderAdminRooms() {
     }).join('');
 }
 
-
 async function promptAddNewRoom() {
     if (currentRole !== 'admin') return;
 
@@ -290,7 +274,6 @@ async function toggleRoomStatus(roomId) {
     }
 }
 
-
 function switchAuthForm(type) {
     const guestForm = document.getElementById('guestLoginForm');
     const staffForm = document.getElementById('staffLoginForm');
@@ -313,7 +296,6 @@ function switchAuthForm(type) {
 async function handleStaffLogin(event) {
     if (event) event.preventDefault();
 
-    
     currentRole = 'admin';
     currentUser = DEFAULT_ADMIN;
 
@@ -396,7 +378,6 @@ function logoutUser() {
     document.getElementById('loginModal')?.classList.add('active');
     switchAuthForm('guest');
 }
-
 
 function switchTab(tabId) {
     document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
@@ -540,7 +521,6 @@ function resetForm() {
     calculateTotal();
 }
 
-
 function renderDashboard() {
     const totalEl = document.getElementById('statTotalBookings');
     const revEl = document.getElementById('statRevenue');
@@ -629,3 +609,4 @@ function renderGuests() {
         `).join('');
     }
 }
+
