@@ -10,7 +10,6 @@ app.use(express.json());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-
 let roomList = [
     { id: "101", title: "Single Standard Room", price: 800, status: "available", img: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500", desc: "Cozy room with free Wi-Fi and king bed." },
     { id: "102", title: "Single Executive Room", price: 1000, status: "occupied", img: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=500", desc: "Executive workspace & smart TV." },
@@ -30,30 +29,29 @@ let guests = [
     { id: "G-101", name: "Arif Chowdhury", email: "arif@example.com", phone: "+8801711112233" }
 ];
 
-
-
 // 1. Get All Rooms
 app.get('/api/rooms', (req, res) => {
     res.json(roomList);
 });
 
-// 2. Add New Room
+// 2. Add New Room (POST /api/rooms)
 app.post('/api/rooms', (req, res) => {
     const newRoom = req.body;
     roomList.push(newRoom);
-    res.status(201).json({ message: 'Room added successfully', room: newRoom });
+    res.status(201).json(newRoom);
 });
 
-// 3. Update Room Price
+// 3. Update Room Price (PATCH /api/rooms/:id/price)
 app.patch('/api/rooms/:id/price', (req, res) => {
     const { id } = req.params;
     const { price } = req.body;
     const room = roomList.find(r => r.id === id);
     if (room) {
         room.price = Number(price);
-        return res.json({ message: 'Price updated', room });
+        res.json(room);
+    } else {
+        res.status(404).json({ error: 'Room not found' });
     }
-    res.status(404).json({ error: 'Room not found' });
 });
 
 // 4. Toggle/Update Room Status

@@ -8,7 +8,6 @@ const DEFAULT_ADMIN = {
     name: 'MD. EMTIAZ HOSSAIN SAMI',
     email: 'admin@grandpalace.com',
     phone: '+8801700000000',
-    avatar: 'Md. EmTIAZ hOSSAIN sAMI LOGO.png'
 };
 
 let roomList = [];
@@ -213,15 +212,25 @@ function renderAdminRooms() {
     }).join('');
 }
 
+// --- UPDATED: Add New Room (Supports Backend API & Local Fallback) ---
 async function promptAddNewRoom() {
-    if (currentRole !== 'admin') return;
+    if (currentRole !== 'admin') {
+        alert('⚠️ Access Denied: You must log in as Staff/Admin to add a room!');
+        return;
+    }
 
     const id = prompt('Enter Room ID (e.g. 701):');
     if (!id) return;
     const title = prompt('Enter Room Title:');
     if (!title) return;
-    const price = parseFloat(prompt('Enter Room Price per night (BDT):'));
-    if (isNaN(price)) return;
+    const priceInput = prompt('Enter Room Price per night (BDT):');
+    if (!priceInput) return;
+
+    const price = parseFloat(priceInput);
+    if (isNaN(price)) {
+        alert('⚠️ Invalid price entered.');
+        return;
+    }
 
     const newRoom = {
         id: id,
@@ -232,25 +241,51 @@ async function promptAddNewRoom() {
         desc: 'Newly added room accommodation.'
     };
 
-    const res = await fetch(`${API_BASE}/rooms`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRoom)
-    });
+    try {
+        const res = await fetch(`${API_BASE}/rooms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newRoom)
+        });
 
-    if (res.ok) {
-        await fetchAllData();
-        alert('✅ New Room Added Successfully!');
+        if (res.ok) {
+            await fetchAllData();
+            alert('✅ New Room Added Successfully!');
+        } else {
+            roomList.push(newRoom);
+            populateRoomDropdown();
+            renderAll();
+            alert('✅ New Room Added (Local Mode)!');
+        }
+    } catch (err) {
+        console.error('API Error:', err);
+        roomList.push(newRoom);
+        populateRoomDropdown();
+        renderAll();
+        alert('✅ New Room Added (Local Mode)!');
     }
 }
 
+// --- UPDATED: Edit Room Price (Supports Backend API & Local Fallback) ---
 async function editRoomPrice(roomId) {
-    if (currentRole !== 'admin') return;
+    if (currentRole !== 'admin') {
+        alert('⚠️ Access Denied: You must log in as Staff/Admin to edit room price!');
+        return;
+    }
+
     const room = roomList.find(r => r.id === roomId);
     if (!room) return;
 
-    const newPrice = parseFloat(prompt('Enter new price for Room ' + room.id + ':', room.price));
-    if (!isNaN(newPrice) && newPrice >= 0) {
+    const input = prompt('Enter new price for Room ' + room.id + ':', room.price);
+    if (input === null) return;
+
+    const newPrice = parseFloat(input);
+    if (isNaN(newPrice) || newPrice < 0) {
+        alert('⚠️ Invalid price entered.');
+        return;
+    }
+
+    try {
         const res = await fetch(`${API_BASE}/rooms/${roomId}/price`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -260,17 +295,41 @@ async function editRoomPrice(roomId) {
         if (res.ok) {
             await fetchAllData();
             alert('✅ Price updated to ৳' + newPrice.toLocaleString());
+        } else {
+            room.price = newPrice;
+            populateRoomDropdown();
+            renderAll();
+            alert('✅ Price updated (Local Mode) to ৳' + newPrice.toLocaleString());
         }
+    } catch (err) {
+        console.error('API Error:', err);
+        room.price = newPrice;
+        populateRoomDropdown();
+        renderAll();
+        alert('✅ Price updated (Local Mode) to ৳' + newPrice.toLocaleString());
     }
 }
 
+// --- UPDATED: Toggle Room Status (Supports Backend API & Local Fallback) ---
 async function toggleRoomStatus(roomId) {
-    const res = await fetch(`${API_BASE}/rooms/${roomId}/status`, {
-        method: 'PATCH'
-    });
+    const room = roomList.find(r => r.id === roomId);
+    try {
+        const res = await fetch(`${API_BASE}/rooms/${roomId}/status`, {
+            method: 'PATCH'
+        });
 
-    if (res.ok) {
-        await fetchAllData();
+        if (res.ok) {
+            await fetchAllData();
+        } else if (room) {
+            room.status = room.status === 'available' ? 'dirty' : 'available';
+            renderAll();
+        }
+    } catch (err) {
+        console.error('API Error:', err);
+        if (room) {
+            room.status = room.status === 'available' ? 'dirty' : 'available';
+            renderAll();
+        }
     }
 }
 
@@ -609,4 +668,3 @@ function renderGuests() {
         `).join('');
     }
 }
-
