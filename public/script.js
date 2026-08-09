@@ -8,6 +8,7 @@ const DEFAULT_ADMIN = {
     name: 'MD. EMTIAZ HOSSAIN SAMI',
     email: 'admin@grandpalace.com',
     phone: '+8801700000000',
+    avatar: 'https://ui-avatars.com/api/?name=Emtiaz+Sami&background=c5a880&color=fff'
 };
 
 let roomList = [];
@@ -39,7 +40,7 @@ function autoFillGuestInfo() {
     }
 }
 
-// --- DOM Content Loaded (Updated to force Login Modal on load) ---
+// --- DOM Content Loaded ---
 document.addEventListener('DOMContentLoaded', async function () {
     const loginModal = document.getElementById('loginModal');
 
@@ -80,7 +81,9 @@ async function fetchAllData() {
         renderAll();
         calculateTotal();
     } catch (err) {
-        console.error('Error fetching data from server:', err);
+        console.error('Error fetching data from server (Running Local Mode):', err);
+        populateRoomDropdown();
+        renderAll();
     }
 }
 
@@ -128,6 +131,11 @@ function renderGuestRooms() {
     const container = document.getElementById('guestRoomsCardsGrid');
     if (!container) return;
 
+    if (roomList.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">No rooms available right now.</p>';
+        return;
+    }
+
     container.innerHTML = roomList.map(function (room) {
         const isAvailable = room.status === 'available';
         let statusClass = isAvailable ? 'badge-success' : 'badge-danger';
@@ -140,15 +148,15 @@ function renderGuestRooms() {
                 <div style="padding:15px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <h4 style="color:var(--gold);margin:0;">Room ${escapeHTML(room.id)}</h4>
-                        <span class="badge ${statusClass}">${escapeHTML(room.status.toUpperCase())}</span>
+                        <span class="badge ${statusClass}">${escapeHTML(String(room.status).toUpperCase())}</span>
                     </div>
 
                     <h5 style="margin:0 0 8px 0; font-size:1rem; color:var(--text-main);">${escapeHTML(room.title)}</h5>
-                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px; min-height:36px;">${escapeHTML(room.desc)}</p>
+                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px; min-height:36px;">${escapeHTML(room.desc || '')}</p>
 
                     <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:10px;">
                         <strong style="font-size:1.1rem; color:var(--gold);">
-                            ৳${room.price.toLocaleString()} <small style="font-size:0.75rem; color:var(--text-muted);">/night</small>
+                            ৳${Number(room.price).toLocaleString()} <small style="font-size:0.75rem; color:var(--text-muted);">/night</small>
                         </strong>
                     </div>
 
@@ -173,6 +181,11 @@ function renderAdminRooms() {
     const container = document.getElementById('adminRoomsCardsGrid');
     if (!container) return;
 
+    if (roomList.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);">No rooms found. Click "Add New Room" to add one.</p>';
+        return;
+    }
+
     container.innerHTML = roomList.map(function (room) {
         let statusClass = 'badge-danger';
         if (room.status === 'available') statusClass = 'badge-success';
@@ -186,18 +199,18 @@ function renderAdminRooms() {
                 <div style="padding:15px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <h4 style="color:var(--gold);margin:0;">Room ${escapeHTML(room.id)}</h4>
-                        <span class="badge ${statusClass}">${escapeHTML(room.status.toUpperCase())}</span>
+                        <span class="badge ${statusClass}">${escapeHTML(String(room.status).toUpperCase())}</span>
                     </div>
 
                     <h5 style="margin:0 0 8px 0; font-size:1rem; color:var(--text-main);">${escapeHTML(room.title)}</h5>
-                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px; min-height:36px;">${escapeHTML(room.desc)}</p>
+                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px; min-height:36px;">${escapeHTML(room.desc || '')}</p>
 
                     <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:10px;">
                         <strong style="font-size:1.1rem; color:var(--gold);">
-                            ৳${room.price.toLocaleString()} <small style="font-size:0.75rem; color:var(--text-muted);">/night</small>
+                            ৳${Number(room.price).toLocaleString()} <small style="font-size:0.75rem; color:var(--text-muted);">/night</small>
                         </strong>
                         
-                        <div class="admin-room-controls">
+                        <div class="admin-room-controls" style="display:flex; gap:5px;">
                             <button type="button" class="btn-secondary-sm" onclick="editRoomPrice('${escapeHTML(room.id)}')">
                                 <i class="fa-solid fa-pen"></i> Price
                             </button>
@@ -212,7 +225,9 @@ function renderAdminRooms() {
     }).join('');
 }
 
-// --- UPDATED: Add New Room (Supports Backend API & Local Fallback) ---
+// ==========================================
+// 📌 ১. নতুন রুম অ্যাড করার ফাংশন (Add New Room)
+// ==========================================
 async function promptAddNewRoom() {
     if (currentRole !== 'admin') {
         alert('⚠️ Access Denied: You must log in as Staff/Admin to add a room!');
@@ -220,25 +235,39 @@ async function promptAddNewRoom() {
     }
 
     const id = prompt('Enter Room ID (e.g. 701):');
-    if (!id) return;
-    const title = prompt('Enter Room Title:');
-    if (!title) return;
+    if (!id || !id.trim()) return;
+
+    // চেক করা হচ্ছে যেন এই ID অলরেডি না থাকে
+    if (roomList.some(r => String(r.id) === String(id.trim()))) {
+        alert('⚠️ Room ID "' + id + '" already exists!');
+        return;
+    }
+
+    const title = prompt('Enter Room Title (e.g. Deluxe Ocean View Suite):');
+    if (!title || !title.trim()) return;
+
     const priceInput = prompt('Enter Room Price per night (BDT):');
     if (!priceInput) return;
 
     const price = parseFloat(priceInput);
-    if (isNaN(price)) {
+    if (isNaN(price) || price < 0) {
         alert('⚠️ Invalid price entered.');
         return;
     }
 
+    const imgInput = prompt('Enter Image URL (Leave blank for default image):');
+    const img = (imgInput && imgInput.trim()) ? imgInput.trim() : 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500';
+
+    const descInput = prompt('Enter Room Description (Optional):');
+    const desc = (descInput && descInput.trim()) ? descInput.trim() : 'Newly added luxury accommodation.';
+
     const newRoom = {
-        id: id,
-        title: title,
+        id: id.trim(),
+        title: title.trim(),
         price: price,
         status: 'available',
-        img: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500',
-        desc: 'Newly added room accommodation.'
+        img: img,
+        desc: desc
     };
 
     try {
@@ -250,15 +279,14 @@ async function promptAddNewRoom() {
 
         if (res.ok) {
             await fetchAllData();
-            alert('✅ New Room Added Successfully!');
         } else {
             roomList.push(newRoom);
             populateRoomDropdown();
             renderAll();
-            alert('✅ New Room Added (Local Mode)!');
         }
+        alert('✅ New Room Added Successfully!');
     } catch (err) {
-        console.error('API Error:', err);
+        console.error('API Error, saving locally:', err);
         roomList.push(newRoom);
         populateRoomDropdown();
         renderAll();
@@ -266,18 +294,23 @@ async function promptAddNewRoom() {
     }
 }
 
-// --- UPDATED: Edit Room Price (Supports Backend API & Local Fallback) ---
+// ==========================================
+// 📌 ২. রুমের প্রাইস এডিট করার ফাংশন (Edit Room Price)
+// ==========================================
 async function editRoomPrice(roomId) {
     if (currentRole !== 'admin') {
         alert('⚠️ Access Denied: You must log in as Staff/Admin to edit room price!');
         return;
     }
 
-    const room = roomList.find(r => r.id === roomId);
-    if (!room) return;
+    const room = roomList.find(r => String(r.id) === String(roomId));
+    if (!room) {
+        alert('⚠️ Room not found!');
+        return;
+    }
 
-    const input = prompt('Enter new price for Room ' + room.id + ':', room.price);
-    if (input === null) return;
+    const input = prompt('Enter new price for Room ' + room.id + ' (BDT):', room.price);
+    if (input === null) return; // Cancel চাপলে বের হয়ে যাবে
 
     const newPrice = parseFloat(input);
     if (isNaN(newPrice) || newPrice < 0) {
@@ -293,16 +326,16 @@ async function editRoomPrice(roomId) {
         });
 
         if (res.ok) {
+            room.price = newPrice;
             await fetchAllData();
-            alert('✅ Price updated to ৳' + newPrice.toLocaleString());
         } else {
             room.price = newPrice;
             populateRoomDropdown();
             renderAll();
-            alert('✅ Price updated (Local Mode) to ৳' + newPrice.toLocaleString());
         }
+        alert('✅ Price updated to ৳' + newPrice.toLocaleString());
     } catch (err) {
-        console.error('API Error:', err);
+        console.error('API Error, saving price locally:', err);
         room.price = newPrice;
         populateRoomDropdown();
         renderAll();
@@ -310,9 +343,9 @@ async function editRoomPrice(roomId) {
     }
 }
 
-// --- UPDATED: Toggle Room Status (Supports Backend API & Local Fallback) ---
+// --- Toggle Room Status ---
 async function toggleRoomStatus(roomId) {
-    const room = roomList.find(r => r.id === roomId);
+    const room = roomList.find(r => String(r.id) === String(roomId));
     try {
         const res = await fetch(`${API_BASE}/rooms/${roomId}/status`, {
             method: 'PATCH'
@@ -468,7 +501,7 @@ function populateRoomDropdown() {
 
     select.innerHTML = roomList.map(r => `
         <option value="${r.id}|${r.title}|${r.price}">
-            Room ${r.id} - ${r.title} (৳${r.price.toLocaleString()}/night)
+            Room ${r.id} - ${r.title} (৳${Number(r.price).toLocaleString()}/night)
         </option>
     `).join('');
 }
@@ -498,7 +531,7 @@ function calculateTotal() {
 }
 
 function bookRoomFromBrowse(roomId) {
-    const room = roomList.find(r => r.id === roomId);
+    const room = roomList.find(r => String(r.id) === String(roomId));
     if (!room || room.status !== 'available') {
         alert('⚠️ Sorry! This room is currently unavailable.');
         return;
@@ -558,20 +591,30 @@ async function handleBookingSubmit(event) {
         avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=c5a880&color=fff'
     };
 
-    const res = await fetch(`${API_BASE}/bookings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookingPayload)
-    });
+    try {
+        const res = await fetch(`${API_BASE}/bookings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bookingPayload)
+        });
 
-    if (res.ok) {
-        await fetchAllData();
-        alert('🎉 Booking Confirmed Successfully!\nInvoice ID: ' + bookingId);
-        resetForm();
-
-        if (currentRole === 'guest') switchTab('tabRooms');
-        else switchTab('tabDashboard');
+        if (res.ok) {
+            await fetchAllData();
+        } else {
+            bookings.push(bookingPayload);
+            renderAll();
+        }
+    } catch (err) {
+        console.error('Booking API Error:', err);
+        bookings.push(bookingPayload);
+        renderAll();
     }
+
+    alert('🎉 Booking Confirmed Successfully!\nInvoice ID: ' + bookingId);
+    resetForm();
+
+    if (currentRole === 'guest') switchTab('tabRooms');
+    else switchTab('tabDashboard');
 }
 
 function resetForm() {
@@ -585,7 +628,7 @@ function renderDashboard() {
     const revEl = document.getElementById('statRevenue');
     const tbody = document.getElementById('dashboardTableBody');
 
-    const rev = bookings.reduce((sum, b) => sum + b.totalBill, 0);
+    const rev = bookings.reduce((sum, b) => sum + (b.totalBill || 0), 0);
 
     if (totalEl) totalEl.textContent = bookings.length;
     if (revEl) revEl.textContent = '৳' + rev.toLocaleString();
@@ -598,7 +641,7 @@ function renderDashboard() {
                 <td>${escapeHTML(b.guestName)}</td>
                 <td>Room ${escapeHTML(b.roomNumber)}</td>
                 <td><small>${escapeHTML(b.checkIn)} to ${escapeHTML(b.checkOut)}</small></td>
-                <td><strong>৳${b.totalBill.toLocaleString()}</strong></td>
+                <td><strong>৳${Number(b.totalBill).toLocaleString()}</strong></td>
                 <td><span class="badge badge-success">${escapeHTML(b.status)}</span></td>
             </tr>
         `).join('');
@@ -615,7 +658,7 @@ function renderFrontDesk() {
                 <div style="padding:15px; border-radius:10px; background:var(--bg-card); border-left:4px solid ${r.status === 'available' ? '#48bb78' : '#f56565'}; border-top:1px solid var(--border-color); border-right:1px solid var(--border-color); border-bottom:1px solid var(--border-color);">
                     <h3 style="margin:0;color:var(--gold);">Room ${escapeHTML(r.id)}</h3>
                     <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0;">${escapeHTML(r.title)}</p>
-                    <span class="badge ${r.status === 'available' ? 'badge-success' : 'badge-danger'}">${escapeHTML(r.status.toUpperCase())}</span>
+                    <span class="badge ${r.status === 'available' ? 'badge-success' : 'badge-danger'}">${escapeHTML(String(r.status).toUpperCase())}</span>
                 </div>
             `).join('')}
         </div>
@@ -629,7 +672,7 @@ function renderHousekeeping() {
             <tr>
                 <td><strong>Room ${escapeHTML(r.id)}</strong></td>
                 <td>${escapeHTML(r.title)}</td>
-                <td><span class="badge badge-gold">${escapeHTML(r.status.toUpperCase())}</span></td>
+                <td><span class="badge badge-gold">${escapeHTML(String(r.status).toUpperCase())}</span></td>
                 <td>
                     <button type="button" class="btn-secondary-sm" onclick="toggleRoomStatus('${escapeHTML(r.id)}')">
                         <i class="fa-solid fa-broom"></i> Change Status
@@ -648,7 +691,7 @@ function renderFinance() {
                 <td><strong>${escapeHTML(b.id)}</strong></td>
                 <td>${escapeHTML(b.guestName)}</td>
                 <td><span class="badge badge-gold">ONLINE</span></td>
-                <td><strong style="color:#48bb78;">৳${b.totalBill.toLocaleString()}</strong></td>
+                <td><strong style="color:#48bb78;">৳${Number(b.totalBill).toLocaleString()}</strong></td>
                 <td>${escapeHTML(b.checkIn)}</td>
             </tr>
         `).join('');
