@@ -1,6 +1,4 @@
-// ==========================================
-// GRAND PALACE RESORT & SPA - CLIENT SCRIPT
-// ==========================================
+
 
 const API_BASE = '/api'; // Express backend base URL
 
@@ -15,14 +13,11 @@ const DEFAULT_ADMIN = {
     avatar: 'Md. EmTIAZ hOSSAIN sAMI LOGO.png'
 };
 
-// Global State (Fetched from Node.js Server)
+
 let roomList = [];
 let bookings = [];
 let guests = [];
 
-// ==========================================
-// 1. HELPER FUNCTIONS
-// ==========================================
 function escapeHTML(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -48,16 +43,14 @@ function autoFillGuestInfo() {
     }
 }
 
-// ==========================================
-// 2. INITIALIZATION & DATA FETCHING
-// ==========================================
+
 document.addEventListener('DOMContentLoaded', async function () {
     const savedRole = localStorage.getItem('currentRole');
     const savedUser = localStorage.getItem('currentUser');
 
     const loginModal = document.getElementById('loginModal');
 
-    // আগে যদি লগইন করা থাকে তবে সেশন লোড হবে, না থাকলে আগে লগইন পপআপ দেখাবে
+
     if (savedRole && savedUser) {
         try {
             currentRole = savedRole;
@@ -69,14 +62,14 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (loginModal) loginModal.classList.add('active');
         }
     } else {
-        // প্রথমবার ঢুকলে সরাসরি লগইন স্ক্রিন/মোডাল চলে আসবে
+       
         if (loginModal) loginModal.classList.add('active');
     }
 
     initClock();
     setupDefaultDates();
     
-    // Server থেকে সব ডেটা ফেচ করা
+    
     await fetchAllData();
 
     const resForm = document.getElementById('reservationForm');
@@ -146,9 +139,7 @@ function renderAll() {
     renderGuests();
 }
 
-// ==========================================
-// 3. UI RENDERING FUNCTIONS
-// ==========================================
+
 function renderGuestRooms() {
     const container = document.getElementById('guestRoomsCardsGrid');
     if (!container) return;
@@ -237,9 +228,7 @@ function renderAdminRooms() {
     }).join('');
 }
 
-// ==========================================
-// 4. ADMIN ACTIONS (CALLING BACKEND API)
-// ==========================================
+
 async function promptAddNewRoom() {
     if (currentRole !== 'admin') return;
 
@@ -301,9 +290,7 @@ async function toggleRoomStatus(roomId) {
     }
 }
 
-// ==========================================
-// 5. AUTHENTICATION & ROLES
-// ==========================================
+
 function switchAuthForm(type) {
     const guestForm = document.getElementById('guestLoginForm');
     const staffForm = document.getElementById('staffLoginForm');
@@ -326,7 +313,7 @@ function switchAuthForm(type) {
 async function handleStaffLogin(event) {
     if (event) event.preventDefault();
 
-    // স্টাফ লগইন করলে সরাসরি আপনার DEFAULT_ADMIN প্রোফাইল সেট হবে
+    
     currentRole = 'admin';
     currentUser = DEFAULT_ADMIN;
 
@@ -410,9 +397,7 @@ function logoutUser() {
     switchAuthForm('guest');
 }
 
-// ==========================================
-// 6. NAVIGATION & BOOKING CALCULATOR
-// ==========================================
+
 function switchTab(tabId) {
     document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -555,9 +540,7 @@ function resetForm() {
     calculateTotal();
 }
 
-// ==========================================
-// 7. TABLES & DASHBOARD RENDERING
-// ==========================================
+
 function renderDashboard() {
     const totalEl = document.getElementById('statTotalBookings');
     const revEl = document.getElementById('statRevenue');

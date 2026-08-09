@@ -10,9 +10,7 @@ app.use(express.json());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==========================================
-// CENTRAL DATABASE (In-Memory Data Store)
-// ==========================================
+
 let roomList = [
     { id: "101", title: "Single Standard Room", price: 800, status: "available", img: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500", desc: "Cozy room with free Wi-Fi and king bed." },
     { id: "102", title: "Single Executive Room", price: 1000, status: "occupied", img: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=500", desc: "Executive workspace & smart TV." },
@@ -32,9 +30,7 @@ let guests = [
     { id: "G-101", name: "Arif Chowdhury", email: "arif@example.com", phone: "+8801711112233" }
 ];
 
-// ==========================================
-// REST API ENDPOINTS
-// ==========================================
+
 
 // 1. Get All Rooms
 app.get('/api/rooms', (req, res) => {
