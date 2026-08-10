@@ -44,12 +44,10 @@ function autoFillGuestInfo() {
 document.addEventListener('DOMContentLoaded', async function () {
     const loginModal = document.getElementById('loginModal');
 
-    // ১. সাইটে ঢোকার সাথে সাথেই লগইন মোডাল ওপেন হবে
     if (loginModal) {
         loginModal.classList.add('active');
     }
 
-    // ২. আগের সেভ থাকা সেশন ডিলিট করে দেওয়া (যাতে অটো-লগইন না হয়)
     localStorage.removeItem('currentRole');
     localStorage.removeItem('currentUser');
 
